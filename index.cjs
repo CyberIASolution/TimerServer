@@ -1,12 +1,7 @@
-const app = require("./src/app.cjs");
-const dotenv = require("dotenv");
-dotenv.config();
+const server = require("./src/app.cjs");
+const { HOST, PORT } = require("./src/config/index.cjs");
 
-const PORT = process.env.PORT;
-const HOST = process.env.HOST;
-const ORG = process.env.ORG;
-
-const server = app(ORG);
+const url = HOST+":"+PORT;
 server.listen(PORT, () => {
-    console.log(`Server started at ${HOST}:${PORT}`);
+    console.log("Started: "+url);
 })

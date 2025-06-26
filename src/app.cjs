@@ -3,24 +3,25 @@ const { Server } = require("socket.io");
 const express = require("express");
 const cors = require("cors");
 
-const Timer = require("./controllers/TimerController.cjs");
+const { register, auth } = require("./controllers/sessionController.cjs");
+const { init } = require("./controllers/userController.cjs");
+const { ORG, PORT } = require("./config/index.cjs");
 
-module.exports = function (origin) {
-  const corsOpt = {
-    origin,
-    methods: ["GET", "POST"],
-  };
+const url = ORG+(PORT? ":"+PORT: "");
 
-  const app = express();
-  const server = createServer(app);
-  const io = new Server(server, { cors: corsOpt });
-  io.on("connection", Timer.init);
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: { origin: "*" }
+});
 
-  app.use(cors(corsOpt));
-  app.get("/status", (req, res) => {
-    res.status(200);
-    res.end();
-  });
+init(io);
 
-  return server;
-};
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }))
+app.use(cors({ origin: url }));
+
+app.post("/register", register);
+app.post("/auth", auth);
+
+module.exports = httpServer;

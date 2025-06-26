@@ -1,80 +1,81 @@
-const timerList = {};
-
 class Timer {
-  #socketList = [];
-  #interval = null;
-  #elapsed = 0;
-  #startTime = null;
+	#id = null;
+	#socketList = [];
+	#interval = null;
+	#elapsed = 0;
+	#startTime = null;
 
-  constructor() {}
+	constructor(id) {
+		this.#id = id;
+	}
 
-  addSocket(socket) {
-    this.#socketList.push(socket);
+	getId() {
+		return this.#id;
+	}
 
-    socket.on("start", this.start.bind(this));
-    socket.on("pause", this.pause.bind(this));
-    socket.on("stop", this.stop.bind(this));
-    socket.on("state", this.#sendState.bind(this));
-  }
+	addSocket(socket) {
+		this.#socketList.push(socket);
 
-  getState() {
-    var stopped = this.#startTime === null && this.#elapsed === null;
-    var paused = this.#startTime === null && this.#elapsed !== null;
-    var elapsed = this.#elapsed;
-    if (this.#startTime)
-      elapsed += Date.now() - this.#startTime;
+		socket.on("start", this.start.bind(this));
+		socket.on("pause", this.pause.bind(this));
+		socket.on("stop", this.stop.bind(this));
+		socket.on("status", this.#sendState.bind(this));
+	}
 
-    return { stopped, paused, elapsed };
-  }
+	getState() {
+		var stopped = this.#startTime === null && this.#elapsed === null;
+		var paused = this.#startTime === null && this.#elapsed !== null;
+		var elapsed = this.#elapsed;
+		if (this.#startTime)
+			elapsed += Date.now() - this.#startTime;
 
-  start() {
-    if (this.#startTime !== null) return;
-    this.#startTime = Date.now();
-    this.#interval = setInterval(this.#sendElapsedTime.bind(this), 500);
-    this.#broadcast("started", this.getState());
-    this.#sendState();
-  }
+		return { stopped, paused, elapsed };
+	}
 
-  pause() {
-    if (this.#startTime === null) return;
-    this.#elapsed += Date.now() - this.#startTime;
-    this.#startTime = null;
-    clearInterval(this.#interval);
-    this.#interval = null;
-    this.#broadcast("paused", this.getState());
-    this.#sendState();
-  }
+	start() {
+		if (this.#startTime !== null) {
+			this.#broadcast("start:error", "Timer already running");
+			return;
+		}
+		this.#startTime = Date.now();
+		this.#interval = setInterval(this.#sendElapsedTime.bind(this), 500);
+		this.#broadcast("start:success", this.getState());
+	}
 
-  stop() {
-    this.#startTime = null;
-    this.#elapsed = 0;
-    clearInterval(this.#interval);
-    this.#interval = null;
-    this.#broadcast("stopped", this.getState());
-    this.#sendState();
-  }
+	pause() {
+		if (this.#startTime === null) {
+			this.#broadcast("pause:error", "Timer not started");
+			return;
+		}
+		this.#elapsed += Date.now() - this.#startTime;
+		this.#startTime = null;
+		clearInterval(this.#interval);
+		this.#interval = null;
+		this.#broadcast("pause:success", this.getState());
+	}
 
-  #sendState() {
-    this.#broadcast("state", this.getState.call(this));
-  }
+	stop() {
+		this.#startTime = null;
+		this.#elapsed = 0;
+		clearInterval(this.#interval);
+		this.#interval = null;
+		this.#broadcast("stop:success", this.getState());
+	}
 
-  #sendElapsedTime() {
-    const now = Date.now();
-    const totalElapsed =
-      this.#elapsed + (this.#startTime ? now - this.#startTime : 0);
-    this.#broadcast("elapsed", { elapsed: totalElapsed });
-  }
+	#sendState() {
+		this.#broadcast("status:success", this.getState.call(this));
+	}
 
-  #broadcast(event, data) {
-    this.#socketList.forEach((socket) => socket.emit(event, data));
-  }
+	#sendElapsedTime() {
+		const now = Date.now();
+		const totalElapsed =
+			this.#elapsed + (this.#startTime ? now - this.#startTime : 0);
+		this.#broadcast("timer:elapsed", { elapsed: totalElapsed });
+	}
+
+	#broadcast(event, data) {
+		this.#socketList.forEach((socket) => socket.emit(event, data));
+	}
 }
 
-function assignTimer(id, socket) {
-  if (!timerList[id]) {
-    timerList[id] = new Timer();
-  }
-  timerList[id].addSocket(socket);
-}
-
-module.exports = { assignTimer };
+module.exports = Timer;
