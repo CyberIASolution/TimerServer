@@ -12,11 +12,12 @@ async function auth(req, res, next) {
     let password = req.body.password;
 
     let account = await Account.findByUsername(username);
+    createUser(account.id);
+
     if (!account) res.status(404).end();
     else if (account.password != password) res.status(401).end();
     else res.json({ id: account.id });
 
-    createUser(account.id);
 
     next();
 }

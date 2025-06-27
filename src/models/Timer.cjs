@@ -14,17 +14,22 @@ class Timer {
 	}
 
 	addSocket(socket) {
-		this.#socketList.push(socket);
+		if (!this.#socketList.includes(socket)) {
+			this.#socketList.push(socket);
+			socket.on("start", this.start.bind(this));
+			socket.on("pause", this.pause.bind(this));
+			socket.on("stop", this.stop.bind(this));
+			socket.on("status", this.#sendState.bind(this));
+			socket.on("disconnect", () => {
+				this.#socketList = this.#socketList.filter(s => s !== socket);
+			});
 
-		socket.on("start", this.start.bind(this));
-		socket.on("pause", this.pause.bind(this));
-		socket.on("stop", this.stop.bind(this));
-		socket.on("status", this.#sendState.bind(this));
+		}
 	}
 
 	getState() {
-		var stopped = this.#startTime === null && this.#elapsed === null;
-		var paused = this.#startTime === null && this.#elapsed !== null;
+		var stopped = this.#startTime === null && this.#elapsed === 0;
+		var paused = this.#startTime === null && this.#elapsed !== 0;
 		var elapsed = this.#elapsed;
 		if (this.#startTime)
 			elapsed += Date.now() - this.#startTime;
