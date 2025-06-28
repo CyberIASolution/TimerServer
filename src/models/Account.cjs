@@ -4,10 +4,11 @@ const supabase = require("../lib/supabaseClient.cjs");
 const table = 'accounts';
 
 const AccountModel = {
-    async create({ username, password }) {
+    async create({ username, password, minuteCost }) {
+        if (!minuteCost) minuteCost = 10;
         const { data, error } = await supabase
             .from(table)
-            .insert([{ username, password }])
+            .insert([{ username, password, minuteCost }])
             .select()
             .single();
 
@@ -41,6 +42,18 @@ const AccountModel = {
         const { data, error } = await supabase
             .from(table)
             .update({ password: newPassword })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    },
+
+    async updateMinuteCost(id, newMinuteCost) {
+        const { data, error } = await supabase
+            .from(table)
+            .update({ minuteCost: newMinuteCost })
             .eq('id', id)
             .select()
             .single();

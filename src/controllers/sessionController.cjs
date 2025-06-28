@@ -16,7 +16,7 @@ async function auth(req, res, next) {
 
     if (!account) res.status(404).end();
     else if (account.password != password) res.status(401).end();
-    else res.json({ id: account.id });
+    else res.json({ id: account.id, minuteCost: account.minuteCost });
 
 
     next();

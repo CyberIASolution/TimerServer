@@ -1,4 +1,5 @@
-const { createUser, assignSocket } = require("../models/User.cjs");
+const { assignSocket } = require("../models/User.cjs");
+const { updateMinuteCost } = require("../models/Account.cjs");
 
 function init(io) {
     io.on("connection", (socket) => {
@@ -15,4 +16,13 @@ function init(io) {
     })
 }
 
-module.exports = { init };
+async function setting(req, res, next) {
+    const id = req.body.userId;
+    const minuteCost = req.body.minuteCost;
+
+    await updateMinuteCost(id, minuteCost);
+    res.status(200);
+    res.end();
+}
+
+module.exports = { init, setting };
